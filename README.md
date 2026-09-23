@@ -105,7 +105,9 @@ Caelestia 2.4.0 のバーは項目が `Bar.qml` にハードコードされて�
 ./install.sh --uninstall --restart # 元のパッケージ版に戻す
 ```
 
-**caelestia-shell を更新したら `./install.sh --restart` を再実行してください。** パッチを当てた2ファイルはコピーなので、再実行しないと古い版のままになります。パッチが当たらなくなった場合はエラーで止まり、既存のオーバーレイは変更されません。
+この環境では Hyprland の autostart（dotfiles の `hypr/.config/hypr/lua/autostart.lua`）が、ログインのたびに `install.sh` を実行してから `caelestia shell -d` を起動します。そのため、パッケージを更新しても次のログインで自動的に追従します。ログインせずにシェルだけ再起動するときは、`caelestia shell -k` ではなく `./install.sh --restart` を使ってください。
+
+**caelestia-shell を更新したら `./install.sh --restart` を再実行してください**（上の autostart を使っていない場合）。 パッチを当てた2ファイルはコピーなので、再実行しないと古い版のままになります。パッチが当たらなくなった場合はエラーで止まり、既存のオーバーレイは変更されません。
 
 > `caelestia shell -k` は起動時と同じパスでインスタンスを探します。そのため、パッケージ版とオーバーレイ版を切り替えるときは旧インスタンスを止められません。`--restart` を付けると両方のパスで停止し、プロセスが終了するのを待ってから起動します（`caelestia shell -d` は重複起動を禁止しているため、待たずに起動すると何も起きません）。
 
