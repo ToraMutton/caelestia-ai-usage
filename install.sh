@@ -2,7 +2,8 @@
 # Build ~/.config/quickshell/caelestia as an overlay of the packaged Caelestia shell.
 #
 # Everything is a symlink into /etc/xdg/quickshell/caelestia except:
-#   - the two patched files (modules/bar/Bar.qml, modules/bar/popouts/Content.qml)
+#   - the three patched files (modules/bar/Bar.qml,
+#     modules/bar/popouts/Content.qml, modules/launcher/items/AppItem.qml)
 #   - aiusage/ -> this project's QML
 # Quickshell prefers the user config dir, so `qs -c caelestia` picks this up.
 # Re-run after every caelestia-shell upgrade so the patched copies track upstream.
@@ -28,7 +29,7 @@ DST=${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/caelestia
 BIN=$HOME/.local/bin/ai-usage
 HERE=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
 MARKER=.ai-usage-overlay
-PATCHED=(modules/bar/Bar.qml modules/bar/popouts/Content.qml)
+PATCHED=(modules/bar/Bar.qml modules/bar/popouts/Content.qml modules/launcher/items/AppItem.qml)
 
 die() {
     echo "error: $*" >&2

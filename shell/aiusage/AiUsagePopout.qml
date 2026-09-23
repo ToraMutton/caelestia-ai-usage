@@ -118,15 +118,6 @@ ColumnLayout {
             }
         }
 
-        StyledText {
-            Layout.fillWidth: true
-            visible: !!section.modelData.shared_scope
-            text: qsTr("Shared by %1").arg(section.modelData.shared_scope)
-            color: Colours.palette.m3onSurfaceVariant
-            font: Tokens.font.body.small
-            elide: Text.ElideRight
-        }
-
         Repeater {
             model: section.modelData.windows
 
@@ -143,50 +134,60 @@ ColumnLayout {
         }
     }
 
+    // Two lines per window: "5h  45%  ····  in 1h 18m (19:20)" over a thin bar.
+    // Weekly windows are checked less often, so their text is muted.
     component LimitRow: ColumnLayout {
         id: win
 
         required property var modelData
         readonly property bool reset: AiUsage.isReset(modelData)
         readonly property real value: reset ? 0 : modelData.used_percent / 100
+        readonly property bool critical: value >= 0.9
+        readonly property bool muted: modelData.kind === "weekly"
+        readonly property color textColour: muted ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onSurface
 
         Layout.fillWidth: true
-        Layout.topMargin: Tokens.spacing.extraSmall
         spacing: Tokens.spacing.extraSmall
 
         RowLayout {
             Layout.fillWidth: true
+            spacing: Tokens.spacing.small
 
             StyledText {
-                Layout.fillWidth: true
                 text: win.modelData.scope ? `${win.modelData.label} · ${win.modelData.scope}` : win.modelData.label
+                color: win.textColour
                 font: Tokens.font.body.small
             }
 
             StyledText {
                 text: win.reset ? "–" : `${Math.round(win.modelData.used_percent)}%`
-                font: Tokens.font.body.builders.small.weight(Font.Medium).build()
-                color: win.value >= 0.9 ? Colours.palette.m3error : Colours.palette.m3onSurface
+                color: win.critical ? Colours.palette.m3error : win.textColour
+                font: Tokens.font.body.builders.small.weight(win.muted ? Font.Normal : Font.Medium).build()
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignRight
+                elide: Text.ElideLeft
+                text: {
+                    const at = win.modelData.resets_at;
+                    if (!at)
+                        return qsTr("not started");
+                    if (win.reset)
+                        return qsTr("reset (%1) · updating").arg(AiUsage.formatTime(at));
+                    return qsTr("in %1 (%2)").arg(AiUsage.remaining(at)).arg(AiUsage.formatTime(at));
+                }
+                color: Colours.palette.m3onSurfaceVariant
+                opacity: win.muted ? 0.75 : 1
+                font: Tokens.font.body.small
             }
         }
 
         StyledProgressBar {
             Layout.fillWidth: true
+            implicitHeight: 3
             value: win.value
-            fgColour: win.value >= 0.9 ? Colours.palette.m3error : Colours.palette.m3primary
-        }
-
-        StyledText {
-            text: {
-                const at = win.modelData.resets_at;
-                if (!at)
-                    return qsTr("Window not started");
-                if (win.reset)
-                    return qsTr("Reset at %1 — waiting for update").arg(AiUsage.formatTime(at));
-                return qsTr("Resets in %1 · %2").arg(AiUsage.remaining(at)).arg(AiUsage.formatTime(at));
-            }
-            color: Colours.palette.m3onSurfaceVariant
-            font: Tokens.font.body.small
+            fgColour: win.critical ? Colours.palette.m3error : win.muted ? Qt.alpha(Colours.palette.m3primary, 0.7) : Colours.palette.m3primary
         }
     }
 }
