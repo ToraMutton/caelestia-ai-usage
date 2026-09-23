@@ -95,9 +95,10 @@ ai-usage --mock partial_failure # mock/<シナリオ>/ の生データを使う�
 Caelestia 2.4.0 のバーは項目が `Bar.qml` にハードコードされていて、拡張の仕組みがありません。そこで `/etc/xdg` のファイルは変更せず、**`~/.config/quickshell/caelestia` にオーバーレイを作ります**（Quickshell はユーザー側の設定を優先します）。
 
 - ほぼすべてを `/etc/xdg/quickshell/caelestia` へのシンボリックリンクにします。パッケージ更新の内容はそのまま反映されます。
-- 次の2ファイルだけ、パッケージ版のコピーに小さなパッチを当てます（`shell/patches/`）。
+- 次の3ファイルだけ、パッケージ版のコピーに小さなパッチを当てます（`shell/patches/`）。
   - `modules/bar/Bar.qml`: import 1行、エントリ一覧に `aiUsage` を追加（時計の直前）、`DelegateChoice` を1つ追加、`checkPopout()` にホバー時の分岐を追加
   - `modules/bar/popouts/Content.qml`: import 1行、`Popout { name: "aiusage" }` を追加
+  - `modules/launcher/items/AppItem.qml`（AI usage とは無関係の修正）: ランチャーでアイコンが見つからないときの代替アイコンを `image-missing` から `application-x-executable` に変更。Mozc や Avahi などの項目がミッシングテクスチャ表示になるのを防ぎます
 - `aiusage/` はこのリポジトリの `shell/aiusage` へのリンクです。
 
 ```sh
@@ -107,7 +108,7 @@ Caelestia 2.4.0 のバーは項目が `Bar.qml` にハードコードされて�
 
 この環境では Hyprland の autostart（dotfiles の `hypr/.config/hypr/lua/autostart.lua`）が、ログインのたびに `install.sh` を実行してから `caelestia shell -d` を起動します。そのため、パッケージを更新しても次のログインで自動的に追従します。ログインせずにシェルだけ再起動するときは、`caelestia shell -k` ではなく `./install.sh --restart` を使ってください。
 
-**caelestia-shell を更新したら `./install.sh --restart` を再実行してください**（上の autostart を使っていない場合）。 パッチを当てた2ファイルはコピーなので、再実行しないと古い版のままになります。パッチが当たらなくなった場合はエラーで止まり、既存のオーバーレイは変更されません。
+**caelestia-shell を更新したら `./install.sh --restart` を再実行してください**（上の autostart を使っていない場合）。 パッチを当てた3ファイルはコピーなので、再実行しないと古い版のままになります。パッチが当たらなくなった場合はエラーで止まり、既存のオーバーレイは変更されません。
 
 > `caelestia shell -k` は起動時と同じパスでインスタンスを探します。そのため、パッケージ版とオーバーレイ版を切り替えるときは旧インスタンスを止められません。`--restart` を付けると両方のパスで停止し、プロセスが終了するのを待ってから起動します（`caelestia shell -d` は重複起動を禁止しているため、待たずに起動すると何も起きません）。
 
@@ -119,7 +120,7 @@ Caelestia 2.4.0 のバーは項目が `Bar.qml` にハードコードされて�
   - 未ログイン → 🔑 に斜線のアイコン、その他の失敗 → ⚠
 - **ホバーでポップアウト**: ネットワークやトレイと同じく、バーの項目にカーソルを乗せると左からポップアウトが出ます。ポップアウトの中へカーソルを移しても閉じないので、更新ボタンも押せます。各枠は2行で表示します。1行目に「ラベル・使用率・リセットまでの残り時間（リセット時刻）」、2行目に細いプログレスバーです。Weekly 枠は確認頻度が低いので控えめな色にしています（90%以上は常に赤）。ほかにプラン、エラー内容、最終更新時刻、更新ボタンを表示します。共有範囲は JSON（`shared_scope`）と `ai-usage` の出力にだけ含めています。
 - 5分ごとに `--max-age 240` で取得します。失敗時は60秒→120秒→…→5分の間隔でリトライします（未ログインの場合はリトライしません）。
-- カウントダウンは Caelestia の `Time` サービス（1秒刻み）から計算し、CLI は呼びません。リセット時刻を過ぎた枠は「Reset at … — waiting for update」と表示します。
+- カウントダウンは Caelestia の `Time` サービス（1秒刻み）から計算し、CLI は呼びません。リセット時刻を過ぎた枠は「reset (…) · updating」と表示します。
 
 ### モックでのプレビュー
 
@@ -161,7 +162,7 @@ ai_usage/
 mock/<scenario>/          生レスポンスのモック（{"__error__": …} で失敗を再現）
 tests/test_fetcher.py
 shell/aiusage/            QML（AiUsage サービス / バー項目 / ポップアウト）
-shell/patches/            Bar.qml・Content.qml へのパッチ
+shell/patches/            Bar.qml・Content.qml・AppItem.qml へのパッチ
 shell/preview/shell.qml   プレビュー用
 install.sh / preview.sh
 ```
