@@ -1,0 +1,43 @@
+--- a/modules/bar/Bar.qml
++++ b/modules/bar/Bar.qml
+@@ -9,6 +9,7 @@
+ import Caelestia.Config
+ import qs.components
+ import qs.services
++import qs.aiusage
+ 
+ ColumnLayout {
+     id: root
+@@ -68,6 +69,10 @@
+                 popouts.hasCurrent = false;
+                 tray.expanded = true;
+             }
++        } else if (id === "aiUsage") {
++            popouts.currentName = "aiusage";
++            popouts.currentCenter = Qt.binding(() => (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y);
++            popouts.hasCurrent = true;
+         } else if (id === "activeWindow" && Config.bar.popouts.activeWindow && Config.bar.activeWindow.showOnHover) {
+             popouts.currentName = id.toLowerCase();
+             popouts.currentCenter = (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y ?? 0;
+@@ -107,7 +112,7 @@
+         id: repeater
+ 
+         model: ScriptModel {
+-            values: root.Config.bar.entries.values.filter(e => e.enabled)
++            values: AiUsage.withBarEntry(root.Config.bar.entries.values.filter(e => e.enabled))
+         }
+ 
+         DelegateChooser {
+@@ -172,6 +177,12 @@
+                 }
+             }
+             DelegateChoice {
++                roleValue: "aiUsage"
++                delegate: EntryWrapper {
++                    AiUsageBar {}
++                }
++            }
++            DelegateChoice {
+                 roleValue: "power"
+                 delegate: EntryWrapper {
+                     Power {
