@@ -15,6 +15,9 @@ Singleton {
     readonly property list<string> mockArgs: Quickshell.env("AI_USAGE_MOCK") ? ["--mock", Quickshell.env("AI_USAGE_MOCK")] : []
     readonly property int interval: 5 * 60 * 1000
     readonly property int minRetry: 60 * 1000
+    // Same lead time as Claude Code's own warning. The date is an upper bound:
+    // the sign-in can end up to 3 days earlier.
+    readonly property int loginWarnDays: 10
 
     property list<var> providers: []
     readonly property bool loading: proc.running
@@ -53,6 +56,13 @@ Singleton {
 
     function isReset(w: var): bool {
         return !!w?.resets_at && new Date(w.resets_at) <= Time.date;
+    }
+
+    // Only an upcoming end: once it has passed, status reports auth_error instead.
+    function loginEndingSoon(p: var): bool {
+        if (!p?.login_expires_at || p.status === "auth_error")
+            return false;
+        return new Date(p.login_expires_at) - Time.date < loginWarnDays * 86400 * 1000;
     }
 
     function remaining(iso: string): string {

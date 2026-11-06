@@ -13,6 +13,10 @@ knowledge of that shape lives in this module.
 
 from __future__ import annotations
 
+import json
+import os
+import subprocess
+
 from . import locate
 from .jsonl import exchange
 from .model import AUTH_ERROR, ERROR, NOT_INSTALLED, OK, UNSUPPORTED, FetchError, parse_iso, provider, window
@@ -24,6 +28,7 @@ SOURCE = "claude-code:get_usage"
 # mobile) and Claude Code.
 SHARED_SCOPE = "Claude apps + Claude Code"
 TIMEOUT = 40.0
+AUTH_STATUS_TIMEOUT = 10.0
 
 # Documented windows only. Unknown keys in the response are ignored rather than
 # guessed at.
@@ -33,6 +38,26 @@ _WINDOWS = [
     ("seven_day_opus", "weekly", "Weekly", 10080, "Opus"),
     ("seven_day_sonnet", "weekly", "Weekly", 10080, "Sonnet"),
 ]
+
+
+def login_expires_at(binary: str) -> str | None:
+    """Ask the CLI when this sign-in ends. Best effort: None never fails a fetch.
+
+    Refreshing tokens does not move this date, so only a new sign-in does. The
+    CLI's own warning goes to the TUI or stderr, which Zed (ACP) never shows.
+    """
+    try:
+        result = subprocess.run(
+            [binary, "auth", "status", "--json"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            cwd=os.path.expanduser("~"),
+            timeout=AUTH_STATUS_TIMEOUT,
+        )
+        return json.loads(result.stdout).get("loginExpiresAt")
+    except (OSError, subprocess.SubprocessError, ValueError, AttributeError):
+        return None
 
 
 def fetch_raw() -> dict:
@@ -67,7 +92,8 @@ def fetch_raw() -> dict:
             raise FetchError(ERROR, f"get_usage failed: {resp.get('error') or 'unknown error'}", retryable=True)
         return resp.get("response") or {}
 
-    return exchange(cmd, requests, pick, TIMEOUT, env={"ENABLE_CLAUDEAI_MCP_SERVERS": "false"})
+    raw = exchange(cmd, requests, pick, TIMEOUT, env={"ENABLE_CLAUDEAI_MCP_SERVERS": "false"})
+    return {**raw, "login_expires_at": login_expires_at(binary)}
 
 
 def normalize(raw: dict) -> dict:
@@ -96,4 +122,5 @@ def normalize(raw: dict) -> dict:
     if not windows:
         raise FetchError(ERROR, "response contained no known limit windows")
 
-    return provider(ID, NAME, status=OK, source=SOURCE, windows=windows, plan=plan, shared_scope=SHARED_SCOPE)
+    return provider(ID, NAME, status=OK, source=SOURCE, windows=windows, plan=plan, shared_scope=SHARED_SCOPE,
+                    login_expires_at=parse_iso(raw.get("login_expires_at")))

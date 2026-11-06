@@ -87,6 +87,7 @@ def provider(
     shared_scope: str | None = None,
     error: str | None = None,
     fetched_at: datetime | None = None,
+    login_expires_at: datetime | None = None,
 ) -> dict:
     now = now_utc()
     return {
@@ -101,6 +102,8 @@ def provider(
         "fetched_at": iso(fetched_at or now) if status == OK else None,
         "attempted_at": iso(now),
         "stale": False,
+        # When the CLI's sign-in hits its hard limit; null if unknown or not applicable.
+        "login_expires_at": iso(login_expires_at),
         "windows": windows or [],
     }
 

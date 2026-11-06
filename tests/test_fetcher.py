@@ -1,12 +1,14 @@
 """Run with: python3 -m unittest discover -s tests"""
 
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -47,6 +49,30 @@ class ClaudeNormalize(unittest.TestCase):
         raw["rate_limits"]["model_scoped"] = [{"display_name": "Fable", "utilization": 12, "resets_at": None}]
         scopes = [w["scope"] for w in claude.normalize(raw)["windows"]]
         self.assertEqual(scopes, [None, None, "Opus", "Fable"])
+
+    def test_login_expiry_is_normalized(self):
+        raw = {**load("normal", "claude"), "login_expires_at": "2099-02-01T09:00:00+09:00"}
+        self.assertEqual(claude.normalize(raw)["login_expires_at"], "2099-02-01T00:00:00+00:00")
+
+    def test_login_expiry_is_optional(self):
+        raw = load("normal", "claude")
+        del raw["login_expires_at"]
+        self.assertIsNone(claude.normalize(raw)["login_expires_at"])
+
+    def test_login_expiry_lookup_reads_auth_status(self):
+        done = subprocess.CompletedProcess([], 0, stdout=b'{"loggedIn": true, "loginExpiresAt": "2099-02-01T00:00:00.000Z"}')
+        with mock.patch("ai_usage.claude.subprocess.run", return_value=done):
+            self.assertEqual(claude.login_expires_at("claude"), "2099-02-01T00:00:00.000Z")
+
+    def test_login_expiry_lookup_failure_is_not_fatal(self):
+        bad_outputs = [b"", b"not json", b"[]"]
+        for out in bad_outputs:
+            done = subprocess.CompletedProcess([], 1, stdout=out)
+            with mock.patch("ai_usage.claude.subprocess.run", return_value=done):
+                self.assertIsNone(claude.login_expires_at("claude"))
+        for exc in (OSError("no exec"), subprocess.TimeoutExpired("claude", 1)):
+            with mock.patch("ai_usage.claude.subprocess.run", side_effect=exc):
+                self.assertIsNone(claude.login_expires_at("claude"))
 
     def test_not_logged_in(self):
         with self.assertRaises(FetchError) as cm:
@@ -102,6 +128,13 @@ class Cli(unittest.TestCase):
             self.assertEqual(openai["fetched_at"], good["providers"][1]["fetched_at"])
             # The provider that succeeded is fresh.
             self.assertFalse(bad["providers"][0]["stale"])
+
+    def test_login_expiry_survives_failed_fetch(self):
+        fresh = {"status": "timeout", "windows": [], "stale": False, "login_expires_at": None}
+        prev = {"status": "ok", "fetched_at": "x", "login_expires_at": "2099-02-01T00:00:00+00:00", "windows": [
+            {"id": "a", "resets_at": "2099-01-01T00:00:00+00:00"},
+        ]}
+        self.assertEqual(cli.merge_stale(fresh, prev)["login_expires_at"], "2099-02-01T00:00:00+00:00")
 
     def test_expired_windows_not_carried_over(self):
         fresh = {"status": "timeout", "windows": [], "stale": False}

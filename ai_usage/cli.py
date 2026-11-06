@@ -63,7 +63,8 @@ def merge_stale(fresh: dict, previous: dict | None) -> dict:
     if not kept:
         return fresh
     return {**fresh, "windows": kept, "stale": True, "plan": previous.get("plan"),
-            "shared_scope": previous.get("shared_scope"), "fetched_at": previous.get("fetched_at")}
+            "shared_scope": previous.get("shared_scope"), "fetched_at": previous.get("fetched_at"),
+            "login_expires_at": previous.get("login_expires_at")}
 
 
 def read_cache(path: Path) -> dict | None:
@@ -146,6 +147,8 @@ def print_human(doc: dict) -> None:
         print(f"{p['name']}{plan}  {p['status']}{stale}  fetched {fmt_local(p.get('fetched_at'))}")
         if p.get("shared_scope"):
             print(f"  shared by: {p['shared_scope']}")
+        if p.get("login_expires_at"):
+            print(f"  sign-in ends by: {fmt_local(p['login_expires_at'])} {fmt_remaining(p['login_expires_at'])}")
         if p.get("error"):
             print(f"  error: {p['error']['message']}")
         for w in p["windows"]:

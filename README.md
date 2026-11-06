@@ -90,6 +90,12 @@ ai-usage --mock partial_failure # mock/<シナリオ>/ の生データを使う�
 
 失敗時は前回成功したデータを `stale: true` として引き継ぎます。リセット時刻を過ぎた枠は引き継ぎません。
 
+### サインインの期限
+
+Claude Code のサインインには上限があり、トークンの自動更新では延びません。切れるとブラウザでの再ログインが必要です。Claude Code 自身の警告は TUI と stderr にしか出ず Zed（ACP）では見えないので、`claude auth status` の `loginExpiresAt` を `login_expires_at` として出力します（トークンファイルは読みません）。
+
+残り10日を切ると、バーのゲージに赤い点、ポップアウトに案内が出ます。この日付は上限で、最大3日早く切れることがあります。CLI が `$PATH` にない環境では、`ai_usage/locate.py` が見つけたバイナリで `claude auth login` を実行してください。
+
 ## Caelestia への組み込み
 
 Caelestia 2.4.0 のバーは項目が `Bar.qml` にハードコードされていて、拡張の仕組みがありません。そこで `/etc/xdg` のファイルは変更せず、**`~/.config/quickshell/caelestia` にオーバーレイを作ります**（Quickshell はユーザー側の設定を優先します）。

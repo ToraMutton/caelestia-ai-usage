@@ -132,6 +132,15 @@ ColumnLayout {
             font: Tokens.font.body.small
             wrapMode: Text.Wrap
         }
+
+        StyledText {
+            Layout.fillWidth: true
+            visible: AiUsage.loginEndingSoon(section.modelData)
+            text: qsTr("Sign-in ends by %1. Run `claude auth login` to renew.").arg(AiUsage.formatTime(section.modelData.login_expires_at ?? ""))
+            color: Colours.palette.m3error
+            font: Tokens.font.body.small
+            wrapMode: Text.Wrap
+        }
     }
 
     // Two lines per window: "5h  45%  ····  in 1h 18m (19:20)" over a thin bar.

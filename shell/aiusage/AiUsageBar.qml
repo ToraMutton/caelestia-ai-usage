@@ -97,5 +97,16 @@ StyledRect {
             text: waiting ? "hourglass_empty" : gauge.provider?.status === "auth_error" ? "key_off" : "error"
             color: waiting ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3error
         }
+
+        // The popout explains it; the bar only has to get noticed in time.
+        StyledRect {
+            anchors.top: parent.top
+            anchors.right: parent.right
+            visible: AiUsage.loginEndingSoon(gauge.provider)
+            implicitWidth: Math.max(4, Math.round(gauge.size / 4))
+            implicitHeight: implicitWidth
+            radius: Tokens.rounding.full
+            color: Colours.palette.m3error
+        }
     }
 }
